@@ -11,3 +11,13 @@ exports.getSightings = async (next) => {
     return next(error);
   }
 };
+
+exports.postSightings = async (sighting, next) => {
+  try {
+    const response = await axios.post(`${duckBe.uri}${duckBe.sightings}`, sighting);
+    return response.data;
+  } catch (error) {
+    console.log(error);
+    return next(error);
+  }
+};

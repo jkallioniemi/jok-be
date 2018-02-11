@@ -9,4 +9,10 @@ router.get('/sightings', (req, res) => {
     .catch(error => res.status(418).send(error));
 });
 
+router.post('/sightings', (req, res) => {
+  duckbeAPI.postSightings(req.body)
+    .then(response => res.send(response))
+    .catch(error => res.status(418).send(error));
+});
+
 module.exports = router;
