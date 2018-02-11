@@ -6,6 +6,7 @@ const methodOverride = require('method-override');
 const cors = require('cors');
 const helmet = require('helmet');
 const routes = require('../api/routes/v1');
+const duckbeRoute = require('../api/routes/v1/duckbe/duckbe.js');
 const { logs } = require('./vars');
 
 /**
@@ -33,6 +34,9 @@ app.use(helmet());
 
 // enable CORS - Cross Origin Resource Sharing
 app.use(cors());
+
+// mount duckbe api on v1
+routes.use('/duckbe', duckbeRoute);
 
 // mount api v1 routes
 app.use('/v1', routes);
