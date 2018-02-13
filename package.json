@@ -12,6 +12,7 @@
   "scripts": {
     "create-db": "createdb -U ${SUPERUSER:-postgres} jok-be",
     "recreate-db": "dropdb -U ${SUPERUSER:-postgres} jok-be && SUPERUSER=${SUPERUSER:-postgres} yarn create-db",
+    "migrate": "knex migrate:latest",
     "precommit": "yarn lint",
     "start": "cross-env NODE_ENV=production pm2 start ./src/server.js",
     "dev": "nodemon ./src/server.js",
@@ -44,10 +45,12 @@
     "express": "^4.15.2",
     "helmet": "^3.5.0",
     "http-status": "^1.0.1",
+    "knex": "^0.14.3",
     "lodash": "^4.17.4",
     "method-override": "^2.3.8",
     "moment-timezone": "^0.5.13",
     "morgan": "^1.8.1",
+    "pg": "^7.4.1",
     "pm2": "^2.4.6",
     "uuid": "^3.1.0"
   },
