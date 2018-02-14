@@ -13,6 +13,7 @@
     "create-db": "createdb -U ${SUPERUSER:-postgres} jok-be",
     "recreate-db": "dropdb -U ${SUPERUSER:-postgres} jok-be && SUPERUSER=${SUPERUSER:-postgres} yarn create-db",
     "migrate": "knex migrate:latest",
+    "seed": "knex seed:run",
     "precommit": "yarn lint",
     "start": "cross-env NODE_ENV=production pm2 start ./src/server.js",
     "dev": "nodemon ./src/server.js",
