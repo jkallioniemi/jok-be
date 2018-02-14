@@ -10,7 +10,7 @@
     "yarn": "*"
   },
   "scripts": {
-    "create-db": "createdb -U ${SUPERUSER:-postgres} jok-be",
+    "create-db": "createdb -U ${SUPERUSER:-postgres} jok-be && yarn migrate && yarn seed",
     "recreate-db": "dropdb -U ${SUPERUSER:-postgres} jok-be && SUPERUSER=${SUPERUSER:-postgres} yarn create-db",
     "migrate": "knex migrate:latest",
     "seed": "knex seed:run",
