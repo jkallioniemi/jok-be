@@ -4,9 +4,9 @@ exports.seed = knex =>
     .then(() =>
       // Inserts seed entries
       knex('Species').insert([
-        { id: 1, name: 'mallard' },
-        { id: 2, name: 'redhead' },
-        { id: 3, name: 'gadwall' },
-        { id: 4, name: 'canvasback' },
-        { id: 5, name: 'lesser scaup' },
+        { name: 'mallard' },
+        { name: 'redhead' },
+        { name: 'gadwall' },
+        { name: 'canvasback' },
+        { name: 'lesser scaup' },
       ]));
