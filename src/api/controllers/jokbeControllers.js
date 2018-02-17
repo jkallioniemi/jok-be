@@ -6,22 +6,6 @@ const _u = require('../utils/miscUtils');
 const _ = require('lodash');
 const { raw } = require('objection');
 
-exports.getSpeciesIdByName = async (speciesName) => {
-  const species = await Species
-    .query()
-    .select('id')
-    .where('name', speciesName);
-  if (!species.length) {
-    throw new APIError({
-      errorMessage: `ValidationError: Species ${speciesName} not found in the database.`,
-      errorData: 'species.length is falsy',
-      statusCode: 400,
-    });
-  }
-
-  return species;
-};
-
 exports.addSightingToDB = async (newSighting) => {
   let creationResult;
   const fieldsToOmitFromDB = ['latitude', 'longitude', 'species'];
@@ -118,6 +102,22 @@ const getCoordinatesFromBody = (sighting) => {
   }
 
   return { latitude: lat, longitude: lon };
+};
+
+exports.getSpeciesIdByName = async (speciesName) => {
+  const species = await Species
+    .query()
+    .select('id')
+    .where('name', speciesName);
+  if (!species.length) {
+    throw new APIError({
+      errorMessage: `ValidationError: Species ${speciesName} not found in the database.`,
+      errorData: 'species.length is falsy',
+      statusCode: 400,
+    });
+  }
+
+  return species;
 };
 
 exports.getSpeciesIdFromBody = async (body) => {
