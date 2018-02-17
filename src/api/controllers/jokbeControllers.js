@@ -4,6 +4,7 @@ const duckbeAPI = require('../utils/duckbeAPI');
 const APIError = require('../utils/APIError');
 const _u = require('../utils/miscUtils');
 const _ = require('lodash');
+const { raw } = require('objection');
 
 exports.getSpeciesIdByName = async (speciesName) => {
   const species = await Species
@@ -22,11 +23,13 @@ exports.getSpeciesIdByName = async (speciesName) => {
 };
 
 exports.addSightingToDB = async (newSighting) => {
-  console.log(newSighting);
+  let createdSighting;
+  const fieldsToOmitFromDB = ['latitude', 'longitude', 'species'];
+  const fieldsToOmitFromResponse = ['speciesId', 'location'];
   try {
-    return await Sighting
+    createdSighting = await Sighting
       .query()
-      .insert(newSighting)
+      .insert(_.omit(newSighting, fieldsToOmitFromDB))
       .returning('*');
   } catch (err) {
     throw new APIError({
@@ -35,10 +38,44 @@ exports.addSightingToDB = async (newSighting) => {
       statusCode: 400,
     });
   }
+
+  if (newSighting.latitude && newSighting.longitude) {
+    let locationPatch;
+    try {
+      const geoJSON = {
+        type: 'Point',
+        coordinates: [coordinates.longitude, coordinates.latitude],
+        crs: { type: 'name', properties: { name: 'EPSG:4326' } },
+      };
+
+      locationPatch = await Sighting
+        .query()
+        .patch({ location: raw('ST_GeomFromGeoJSON(?)', JSON.stringify(geoJSON)) })
+        .where('id', createdSighting.id);
+    } catch (err) {
+      throw new APIError({
+        errorMessage: `${_u.getErrorType(err.type)}: Something went wrong with adding coordinates.`,
+        errorData: _u.getErrorData(err),
+        statusCode: 400,
+      });
+    }
+
+    if (locationPatch) {
+      createdSighting.latitude = newSighting.latitude;
+      createdSighting.longitude = newSighting.longitude;
+    } else {
+      throw new APIError({
+        errorMessage: 'LocationNotAddedError: Something went wrong with adding coordinates.',
+        errorData: 'locationPatch is falsy, i.e. database indicates 0 records were patched.',
+        statusCode: 400,
+      });
+    }
+  }
+  createdSighting.species = newSighting.species;
+  return _.omit(createdSighting, fieldsToOmitFromResponse);
 };
 
 exports.addSightingToOldDB = async (newSighting) => {
-  console.log(newSighting);
   try {
     return await duckbeAPI.postSightings(newSighting);
   } catch (err) {
@@ -51,8 +88,9 @@ exports.addSightingToOldDB = async (newSighting) => {
 };
 
 exports.addSighting = async (newSighting) => {
-  const result = await exports.addSightingToDB(_.omit(newSighting, 'species'));
-  result.duckbeResult = await exports.addSightingToOldDB(_.omit(result, 'speciesId'));
+  const fieldsToOmitFromOldDB = ['speciesId', 'location', 'longitude', 'latitude'];
+  const result = await exports.addSightingToDB(newSighting);
+  result.duckbeResult = await exports.addSightingToOldDB(_.omit(result, fieldsToOmitFromOldDB));
 
   return result;
 };

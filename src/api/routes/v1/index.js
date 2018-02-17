@@ -12,6 +12,11 @@ const router = express.Router();
  */
 router.get('/status', (req, res) => res.send('OK'));
 
+router.get('/species', async (req, res) => {
+  const species = await Species.query();
+  res.send(species);
+});
+
 router.get('/sightings', async (req, res) => {
   try {
     const sightings = await Sighting
@@ -30,17 +35,6 @@ router.get('/sightings', async (req, res) => {
   }
 });
 
-router.get('/species', async (req, res) => {
-  const species = await Species.query();
-  res.send(species);
-});
-
-router.get('/test', (req, res) => {
-  apiController.getSpeciesId(req.body)
-    .then(rid => res.send({ id: rid }))
-    .catch(err => _u.sendError(res, err));
-});
-
 router.post('/sightings', (req, res) => {
   apiController.getSpeciesId(req.body)
     .then((speciesInfo) => {
@@ -50,6 +44,8 @@ router.post('/sightings', (req, res) => {
         description: req.body.description,
         dateTime: req.body.dateTime,
         count: req.body.count,
+        latitude: req.body.latitude,
+        longitude: req.body.longitude,
       };
 
       apiController.addSighting(newSighting)
