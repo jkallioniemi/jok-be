@@ -16,4 +16,3 @@ exports.down = knex => knex.schema
   .table('Sighting', (table) => {
     table.dropColumn('location');
   });
-

@@ -4,30 +4,14 @@ const duckbeAPI = require('../utils/duckbeAPI');
 const APIError = require('../utils/APIError');
 const _u = require('../utils/miscUtils');
 const _ = require('lodash');
-const { raw } = require('objection');
+const { raw } = require('objection');
 
-exports.getSpeciesIdByName = async (speciesName) => {
-  const species = await Species
-    .query()
-    .select('id')
-    .where('name', speciesName);
-  if (!species.length) {
-    throw new APIError({
-      errorMessage: `ValidationError: Species ${speciesName} not found in the database.`,
-      errorData: 'species.length is falsy',
-      statusCode: 400,
-    });
-  }
-
-  return species;
-};
-
-exports.addSightingToDB = async (newSighting) => {
-  let createdSighting;
+const addSightingToDB = async (newSighting) => {
+  let creationResult;
   const fieldsToOmitFromDB = ['latitude', 'longitude', 'species'];
   const fieldsToOmitFromResponse = ['speciesId', 'location'];
   try {
-    createdSighting = await Sighting
+    creationResult = await Sighting
       .query()
       .insert(_.omit(newSighting, fieldsToOmitFromDB))
       .returning('*');
@@ -41,19 +25,19 @@ exports.addSightingToDB = async (newSighting) => {
 
   // FIXME: The proper way to do this would be to combine these two queries into one.
   if (newSighting.latitude && newSighting.longitude) {
-    const coordinates = getCoordinates(newSighting);
-    let locationPatch;
+    const coordinates = getCoordinatesFromBody(newSighting);
+    let locationPatchResult;
     try {
-      const geoJSON = {
+      const geoObject = {
         type: 'Point',
         coordinates: [coordinates.longitude, coordinates.latitude],
         crs: { type: 'name', properties: { name: 'EPSG:4326' } },
       };
 
-      locationPatch = await Sighting
+      locationPatchResult = await Sighting
         .query()
-        .patch({ location: raw('ST_GeomFromGeoJSON(?)', JSON.stringify(geoJSON)) })
-        .where('id', createdSighting.id);
+        .patch({ location: raw('ST_GeomFromGeoJSON(?)', JSON.stringify(geoObject)) })
+        .where('id', creationResult.id);
     } catch (err) {
       throw new APIError({
         errorMessage: `${_u.getErrorType(err.type)}: Something went wrong with adding coordinates.`,
@@ -62,10 +46,7 @@ exports.addSightingToDB = async (newSighting) => {
       });
     }
 
-    if (locationPatch) {
-      createdSighting.latitude = newSighting.latitude;
-      createdSighting.longitude = newSighting.longitude;
-    } else {
+    if (!locationPatchResult) {
       throw new APIError({
         errorMessage: 'LocationNotAddedError: Something went wrong with adding coordinates.',
         errorData: 'locationPatch is falsy, i.e. database indicates 0 records were patched.',
@@ -73,11 +54,14 @@ exports.addSightingToDB = async (newSighting) => {
       });
     }
   }
-  createdSighting.species = newSighting.species;
-  return _.omit(createdSighting, fieldsToOmitFromResponse);
+
+  creationResult.latitude = _.get(newSighting, 'latitude', null);
+  creationResult.longitude = _.get(newSighting, 'longitude', null);
+  creationResult.species = newSighting.species;
+  return _.omit(creationResult, fieldsToOmitFromResponse);
 };
 
-exports.addSightingToOldDB = async (newSighting) => {
+const addSightingToOldDB = async (newSighting) => {
   try {
     return await duckbeAPI.postSightings(newSighting);
   } catch (err) {
@@ -91,13 +75,13 @@ exports.addSightingToOldDB = async (newSighting) => {
 
 exports.addSighting = async (newSighting) => {
   const fieldsToOmitFromOldDB = ['speciesId', 'location', 'longitude', 'latitude'];
-  const result = await exports.addSightingToDB(newSighting);
-  result.duckbeResult = await exports.addSightingToOldDB(_.omit(result, fieldsToOmitFromOldDB));
+  const result = await addSightingToDB(newSighting);
+  result.duckbeResult = await addSightingToOldDB(_.omit(result, fieldsToOmitFromOldDB));
 
   return result;
 };
 
-const getCoordinates = (sighting) => {
+const getCoordinatesFromBody = (sighting) => {
   const lat = parseFloat(sighting.latitude);
   const lon = parseFloat(sighting.longitude);
 
@@ -120,17 +104,33 @@ const getCoordinates = (sighting) => {
   return { latitude: lat, longitude: lon };
 };
 
-exports.getSpeciesId = async (body) => {
-  const speciesInfo = { speciesId: parseInt(body.speciesId, 10) };
-  const isNaN = Number.isNaN(speciesInfo.speciesId);
+const getSpeciesIdByName = async (speciesName) => {
+  const species = await Species
+    .query()
+    .select('id')
+    .where('name', speciesName);
+  if (!species.length) {
+    throw new APIError({
+      errorMessage: `ValidationError: Species ${speciesName} not found in the database.`,
+      errorData: 'species.length is falsy',
+      statusCode: 400,
+    });
+  }
+
+  return species;
+};
+
+exports.getSpeciesIdFromBody = async (body) => {
+  const speciesData = { id: parseInt(body.speciesId, 10) };
+  const isNaN = Number.isNaN(speciesData.id);
 
   if (!isNaN) {
     try {
       const nameQuery = await Species
         .query()
         .select('name')
-        .findById(speciesInfo.speciesId);
-      speciesInfo.speciesName = nameQuery.name;
+        .findById(speciesData.id);
+      speciesData.name = nameQuery.name;
     } catch (error) {
       throw new APIError({
         errorMessage: `${_u.getErrorType(error)}: Provided speciesId not found in database.`,
@@ -140,9 +140,9 @@ exports.getSpeciesId = async (body) => {
     }
   } else if (isNaN && body.species) {
     try {
-      const species = await exports.getSpeciesIdByName(body.species);
-      speciesInfo.speciesId = species[0].id;
-      speciesInfo.speciesName = body.species;
+      const species = await getSpeciesIdByName(body.species);
+      speciesData.id = species[0].id;
+      speciesData.name = body.species;
     } catch (error) {
       throw error;
     }
@@ -154,5 +154,5 @@ exports.getSpeciesId = async (body) => {
       statusCode: 400,
     });
   }
-  return speciesInfo;
+  return speciesData;
 };
