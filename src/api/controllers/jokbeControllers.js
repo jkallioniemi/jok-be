@@ -46,10 +46,7 @@ const addSightingToDB = async (newSighting) => {
       });
     }
 
-    if (locationPatchResult) {
-      creationResult.latitude = newSighting.latitude;
-      creationResult.longitude = newSighting.longitude;
-    } else {
+    if (!locationPatchResult) {
       throw new APIError({
         errorMessage: 'LocationNotAddedError: Something went wrong with adding coordinates.',
         errorData: 'locationPatch is falsy, i.e. database indicates 0 records were patched.',
@@ -57,6 +54,9 @@ const addSightingToDB = async (newSighting) => {
       });
     }
   }
+
+  creationResult.latitude = _.get(newSighting, 'latitude', null);
+  creationResult.longitude = _.get(newSighting, 'longitude', null);
   creationResult.species = newSighting.species;
   return _.omit(creationResult, fieldsToOmitFromResponse);
 };
