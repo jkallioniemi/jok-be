@@ -6,7 +6,7 @@ const _u = require('../utils/miscUtils');
 const _ = require('lodash');
 const { raw } = require('objection');
 
-exports.addSightingToDB = async (newSighting) => {
+const addSightingToDB = async (newSighting) => {
   let creationResult;
   const fieldsToOmitFromDB = ['latitude', 'longitude', 'species'];
   const fieldsToOmitFromResponse = ['speciesId', 'location'];
@@ -61,7 +61,7 @@ exports.addSightingToDB = async (newSighting) => {
   return _.omit(creationResult, fieldsToOmitFromResponse);
 };
 
-exports.addSightingToOldDB = async (newSighting) => {
+const addSightingToOldDB = async (newSighting) => {
   try {
     return await duckbeAPI.postSightings(newSighting);
   } catch (err) {
@@ -75,8 +75,8 @@ exports.addSightingToOldDB = async (newSighting) => {
 
 exports.addSighting = async (newSighting) => {
   const fieldsToOmitFromOldDB = ['speciesId', 'location', 'longitude', 'latitude'];
-  const result = await exports.addSightingToDB(newSighting);
-  result.duckbeResult = await exports.addSightingToOldDB(_.omit(result, fieldsToOmitFromOldDB));
+  const result = await addSightingToDB(newSighting);
+  result.duckbeResult = await addSightingToOldDB(_.omit(result, fieldsToOmitFromOldDB));
 
   return result;
 };
@@ -104,7 +104,7 @@ const getCoordinatesFromBody = (sighting) => {
   return { latitude: lat, longitude: lon };
 };
 
-exports.getSpeciesIdByName = async (speciesName) => {
+const getSpeciesIdByName = async (speciesName) => {
   const species = await Species
     .query()
     .select('id')
@@ -140,7 +140,7 @@ exports.getSpeciesIdFromBody = async (body) => {
     }
   } else if (isNaN && body.species) {
     try {
-      const species = await exports.getSpeciesIdByName(body.species);
+      const species = await getSpeciesIdByName(body.species);
       speciesData.id = species[0].id;
       speciesData.name = body.species;
     } catch (error) {
