@@ -4,7 +4,7 @@ const duckbeAPI = require('../utils/duckbeAPI');
 const APIError = require('../utils/APIError');
 const _u = require('../utils/miscUtils');
 const _ = require('lodash');
-const { raw } = require('objection');
+const { raw } = require('objection');
 
 exports.getSpeciesIdByName = async (speciesName) => {
   const species = await Species

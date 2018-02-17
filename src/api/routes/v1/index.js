@@ -28,7 +28,7 @@ router.get('/sightings', async (req, res) => {
     const sightingsResponse = _.map(sightings, (sighting) => {
       const newSighting = _.omit(sighting, ['speciesId', 'location', 'gjson']);
 
-      const gjson = JSON.parse(sighting.gjson);
+      const gjson = JSON.parse(_.get(sighting, 'gjson'));
 
       newSighting.longitude = _.get(gjson, 'coordinates[0]', null);
       newSighting.latitude = _.get(gjson, 'coordinates[1]', null);
