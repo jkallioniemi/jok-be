@@ -6,7 +6,7 @@ const _u = require('../utils/miscUtils');
 const _ = require('lodash');
 const { raw } = require('objection');
 
-const addSightingToDB = async (newSighting) => {
+exports.addSightingToDB = async (newSighting) => {
   let creationResult;
   // Coordinates are stored as a PostGIS geometry on the DB, adding them is handled separately
   // and species is stored as a speciesId that is a relation to the Species table.
@@ -66,7 +66,7 @@ const addSightingToDB = async (newSighting) => {
   return _.omit(creationResult, fieldsToOmitFromResponse);
 };
 
-const addSightingToOldDB = async (newSighting) => {
+exports.addSightingToOldDB = async (newSighting) => {
   try {
     return await duckbeAPI.postSightings(newSighting);
   } catch (err) {
@@ -79,10 +79,6 @@ const addSightingToOldDB = async (newSighting) => {
 };
 
 exports.addSighting = async (newSighting) => {
-  // Old DB doesn't support these pieces of data.
-  const fieldsToOmitFromOldDB = ['speciesId', 'location', 'longitude', 'latitude'];
-  const result = await addSightingToDB(newSighting);
-  result.duckbeResult = await addSightingToOldDB(_.omit(result, fieldsToOmitFromOldDB));
 
   return result;
 };
