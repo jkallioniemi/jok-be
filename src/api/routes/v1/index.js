@@ -60,7 +60,7 @@ router.post('/sightings', (req, res) => {
       };
 
       apiController.addSighting(sightingToAdd)
-        .then(result => res.send(result))
+        .then(result => res.status(201).send(result))
         .catch(err => _u.sendError(res, err));
     })
     .catch(err => _u.sendError(res, err));

@@ -126,7 +126,7 @@ const getSpeciesIdByName = async (speciesName) => {
     throw new APIError({
       errorMessage: `ValidationError: Species ${speciesName} not found in the database.`,
       errorData: 'species.length is falsy',
-      statusCode: 400,
+      statusCode: 404,
     });
   }
 
@@ -155,7 +155,7 @@ exports.getSpeciesIdFromBody = async (body) => {
       throw new APIError({
         errorMessage: `${_u.getErrorType(error)}: Provided speciesId not found in database.`,
         errorData: _u.getErrorData(error),
-        statusCode: _u.getStatusCode(error),
+        statusCode: 404,
       });
     }
   } else if (isNaN && body.species) {
