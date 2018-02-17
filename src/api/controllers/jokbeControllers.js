@@ -39,7 +39,9 @@ exports.addSightingToDB = async (newSighting) => {
     });
   }
 
+  // FIXME: The proper way to do this would be to combine these two queries into one.
   if (newSighting.latitude && newSighting.longitude) {
+    const coordinates = getCoordinates(newSighting);
     let locationPatch;
     try {
       const geoJSON = {
@@ -93,6 +95,29 @@ exports.addSighting = async (newSighting) => {
   result.duckbeResult = await exports.addSightingToOldDB(_.omit(result, fieldsToOmitFromOldDB));
 
   return result;
+};
+
+const getCoordinates = (sighting) => {
+  const lat = parseFloat(sighting.latitude);
+  const lon = parseFloat(sighting.longitude);
+
+  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+    throw new APIError({
+      errorMessage: 'ValidationError: One or both coordinates are not numbers.',
+      errorData: '(Number.isNaN(latitude) || Number.isNaN(longitude)) evaluated to true',
+      statusCode: 400,
+    });
+  }
+
+  if (!((lat >= -90 && lat <= 90) && (lon >= -180 && lon < 180))) {
+    throw new APIError({
+      errorMessage: 'ValidationError: One or both coordinates incorrectly formatted.',
+      errorData: 'failed check -90 <= latitude <= 90 && -180 <= longitude < 180 (ISO 6709:2008)',
+      statusCode: 400,
+    });
+  }
+
+  return { latitude: lat, longitude: lon };
 };
 
 exports.getSpeciesId = async (body) => {
