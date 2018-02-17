@@ -14,24 +14,24 @@ const router = express.Router();
 router.get('/status', (req, res) => res.send('OK'));
 
 router.get('/species', async (req, res) => {
-  const species = await Species.query();
-  res.send(species);
+  const speciesResult = await Species.query();
+  res.send(speciesResult);
 });
 
 router.get('/sightings', async (req, res) => {
   try {
-    const sightings = await Sighting
+    const sightingsResult = await Sighting
       .query()
       .select('*', raw('ST_AsGeoJSON(location) AS gjson'))
       .eager('species');
 
-    const sightingsResponse = _.map(sightings, (sighting) => {
+    const sightingsResponse = _.map(sightingsResult, (sighting) => {
       const newSighting = _.omit(sighting, ['speciesId', 'location', 'gjson']);
 
-      const gjson = JSON.parse(_.get(sighting, 'gjson'));
+      const geoJSON = JSON.parse(_.get(sighting, 'gjson'));
 
-      newSighting.longitude = _.get(gjson, 'coordinates[0]', null);
-      newSighting.latitude = _.get(gjson, 'coordinates[1]', null);
+      newSighting.longitude = _.get(geoJSON, 'coordinates[0]', null);
+      newSighting.latitude = _.get(geoJSON, 'coordinates[1]', null);
 
       newSighting.species = sighting.species.name;
       return newSighting;
@@ -44,11 +44,11 @@ router.get('/sightings', async (req, res) => {
 });
 
 router.post('/sightings', (req, res) => {
-  apiController.getSpeciesId(req.body)
-    .then((speciesInfo) => {
-      const newSighting = {
-        species: speciesInfo.speciesName,
-        speciesId: speciesInfo.speciesId,
+  apiController.getSpeciesIdFromBody(req.body)
+    .then((speciesData) => {
+      const sightingToAdd = {
+        species: speciesData.name,
+        speciesId: speciesData.id,
         description: req.body.description,
         dateTime: req.body.dateTime,
         count: req.body.count,
@@ -56,7 +56,7 @@ router.post('/sightings', (req, res) => {
         longitude: req.body.longitude,
       };
 
-      apiController.addSighting(newSighting)
+      apiController.addSighting(sightingToAdd)
         .then(result => res.send(result))
         .catch(err => _u.sendError(res, err));
     })
