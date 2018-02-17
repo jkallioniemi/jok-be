@@ -8,6 +8,8 @@ const { raw } = require('objection');
 
 const addSightingToDB = async (newSighting) => {
   let creationResult;
+  // Coordinates are stored as a PostGIS geometry on the DB, adding them is handled separately
+  // and species is stored as a speciesId that is a relation to the Species table.
   const fieldsToOmitFromDB = ['latitude', 'longitude', 'species'];
   const fieldsToOmitFromResponse = ['speciesId', 'location'];
   try {
@@ -55,6 +57,9 @@ const addSightingToDB = async (newSighting) => {
     }
   }
 
+  // locationPatchResult is just the number of rows that the DB reported as being changed by the
+  // query. If everything was successful, we can just respond with the coords the user originally
+  // provided in their request.
   creationResult.latitude = _.get(newSighting, 'latitude', null);
   creationResult.longitude = _.get(newSighting, 'longitude', null);
   creationResult.species = newSighting.species;
@@ -74,6 +79,7 @@ const addSightingToOldDB = async (newSighting) => {
 };
 
 exports.addSighting = async (newSighting) => {
+  // Old DB doesn't support these pieces of data.
   const fieldsToOmitFromOldDB = ['speciesId', 'location', 'longitude', 'latitude'];
   const result = await addSightingToDB(newSighting);
   result.duckbeResult = await addSightingToOldDB(_.omit(result, fieldsToOmitFromOldDB));
@@ -82,6 +88,10 @@ exports.addSighting = async (newSighting) => {
 };
 
 const getCoordinatesFromBody = (sighting) => {
+  /**
+   * Validates coordinates and returns an object with a 'latitude' key and a 'longitude' key.
+   * @param {object} - object that has a 'latitude' key and a 'longitude' key
+   */
   const lat = parseFloat(sighting.latitude);
   const lon = parseFloat(sighting.longitude);
 
@@ -93,6 +103,9 @@ const getCoordinatesFromBody = (sighting) => {
     });
   }
 
+
+  // ISO standard 6709:2008 says that longitude should be between -180 and +180,
+  // with the negative end being inclusive and positive end exclusive.
   if (!((lat >= -90 && lat <= 90) && (lon >= -180 && lon < 180))) {
     throw new APIError({
       errorMessage: 'ValidationError: One or both coordinates incorrectly formatted.',
@@ -121,11 +134,18 @@ const getSpeciesIdByName = async (speciesName) => {
 };
 
 exports.getSpeciesIdFromBody = async (body) => {
+  /**
+   * Gets speciesId based on a string with the species name, or simply the speciesId integer
+   * provided by user.
+   * @param {object} - Object that has either a 'species' or a 'speciesId' key
+   */
   const speciesData = { id: parseInt(body.speciesId, 10) };
   const isNaN = Number.isNaN(speciesData.id);
 
   if (!isNaN) {
     try {
+      // If the user provided us with a speciesId integer, we need the name of the species
+      // for the response we are going to be sending back.
       const nameQuery = await Species
         .query()
         .select('name')
@@ -140,6 +160,8 @@ exports.getSpeciesIdFromBody = async (body) => {
     }
   } else if (isNaN && body.species) {
     try {
+      // If the user provided us with a species name as a string, we need to check that the
+      // species exists and get the ID for adding their sighting to the database.
       const species = await getSpeciesIdByName(body.species);
       speciesData.id = species[0].id;
       speciesData.name = body.species;

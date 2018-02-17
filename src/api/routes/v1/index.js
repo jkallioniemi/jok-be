@@ -25,6 +25,8 @@ router.get('/sightings', async (req, res) => {
       .select('*', raw('ST_AsGeoJSON(location) AS gjson'))
       .eager('species');
 
+    // Location is stored as a PostGIS geometry in the DB, so omit it from the response and add
+    // the lat and lon coordinates from the JSON that ST_AsGeoJSON produces.
     const sightingsResponse = _.map(sightingsResult, (sighting) => {
       const newSighting = _.omit(sighting, ['speciesId', 'location', 'gjson']);
 
@@ -44,6 +46,7 @@ router.get('/sightings', async (req, res) => {
 });
 
 router.post('/sightings', (req, res) => {
+  // Most of this logic has been externalized to jokbeControllers.js because it is so long.
   apiController.getSpeciesIdFromBody(req.body)
     .then((speciesData) => {
       const sightingToAdd = {
