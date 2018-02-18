@@ -172,9 +172,23 @@ router.post('/sightings', (req, res) => {
         longitude: req.body.longitude,
       };
 
-      apiController.addSighting(sightingToAdd)
-        .then(result => res.status(201).send(result))
-        .catch(err => _u.sendError(res, err));
+        // Old DB doesn't support these pieces of data.
+      apiController.addSightingToDB(sightingToAdd)
+        .then((result) => {
+          const fieldsToOmitFromOldDB = ['speciesId', 'location', 'longitude', 'latitude'];
+          apiController.addSightingToOldDB(_.omit(result, fieldsToOmitFromOldDB))
+            .then((duckResult) => {
+              const resultToSend = result;
+              resultToSend.duckbeResult = duckResult;
+              res.status(201).send(resultToSend);
+            })
+            .catch((duckResult) => {
+              const resultToSend = result;
+              resultToSend.duckbeResult = duckResult;
+              res.status(201).send(resultToSend);
+            });
+        })
+        .catch(error => _u.sendError(error));
     })
     .catch(err => _u.sendError(res, err));
 });
