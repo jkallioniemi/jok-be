@@ -1,11 +1,5 @@
-const Sighting = require('../../models/Sighting');
-const Species = require('../../models/Species');
 const express = require('express');
-const _ = require('lodash');
 const apiController = require('../../controllers/jokbeControllers');
-const _u = require('../../utils/miscUtils');
-const { raw } = require('objection');
-const APIError = require('../../utils/APIError');
 
 const router = express.Router();
 
