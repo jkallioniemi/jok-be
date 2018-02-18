@@ -11,15 +11,10 @@ const knex = Knex(knexConfig[env]);
 Model.knex(knex);
 
 // listen to requests
-const server = app.listen(port, () => console.info(`server started on port ${port} (${env})`));
-
-const stop = () => {
-  server.close();
-};
+app.listen(port, () => console.info(`server started on port ${port} (${env})`));
 
 /**
 * Exports express
 * @public
 */
 module.exports = app;
-module.exports.stop = stop;

@@ -44,4 +44,19 @@ mocha.describe('API', () => {
       });
   });
 
+  describe('GET /species', () => {
+    it('should list ALL species on /species GET', () => {
+      return chai.request(server)
+        .get('/v1/species')
+        .then((res) => {
+          res.should.have.status(200);
+          res.should.be.json;
+          res.body.should.be.a('array');
+        })
+        .catch((err) => {
+          throw err;
+        });
+    });
+  });
+
 });

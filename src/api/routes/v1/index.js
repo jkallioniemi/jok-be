@@ -188,7 +188,7 @@ router.post('/sightings', (req, res) => {
               res.status(201).send(resultToSend);
             });
         })
-        .catch(error => _u.sendError(error));
+        .catch(error => _u.sendError(res, error));
     })
     .catch(err => _u.sendError(res, err));
 });

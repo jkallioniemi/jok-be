@@ -51,7 +51,7 @@ exports.addSightingToDB = async (newSighting) => {
     if (!locationPatchResult) {
       throw new APIError({
         errorMessage: 'LocationNotAddedError: Something went wrong with adding coordinates.',
-        errorData: 'locationPatch is falsy, i.e. database indicates 0 records were patched.',
+        errorData: 'locationPatchResult is falsy, i.e. database indicates 0 records were patched.',
         statusCode: 400,
       });
     }
@@ -76,11 +76,6 @@ exports.addSightingToOldDB = async (newSighting) => {
       statusCode: 502,
     });
   }
-};
-
-exports.addSighting = async (newSighting) => {
-
-  return result;
 };
 
 const getCoordinatesFromBody = (sighting) => {
