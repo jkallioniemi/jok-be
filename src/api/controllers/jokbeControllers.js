@@ -6,7 +6,41 @@ const _u = require('../utils/miscUtils');
 const _ = require('lodash');
 const { raw } = require('objection');
 
-exports.addSightingToDB = async (newSighting) => {
+exports.postSightingsRoute = (req, res) => {
+  getSpeciesIdFromBody(req.body)
+    .then((speciesData) => {
+      const sightingToAdd = {
+        species: speciesData.name,
+        speciesId: speciesData.id,
+        description: req.body.description,
+        dateTime: req.body.dateTime,
+        count: req.body.count,
+        latitude: req.body.latitude,
+        longitude: req.body.longitude,
+      };
+
+      // Old DB doesn't support these pieces of data.
+      addSightingToDB(sightingToAdd)
+        .then((result) => {
+          const fieldsToOmitFromOldDB = ['speciesId', 'location', 'longitude', 'latitude'];
+          addSightingToOldDB(_.omit(result, fieldsToOmitFromOldDB))
+            .then((duckResult) => {
+              const resultToSend = result;
+              resultToSend.duckbeResult = duckResult;
+              res.status(201).send(resultToSend);
+            })
+            .catch((duckResult) => {
+              const resultToSend = result;
+              resultToSend.duckbeResult = duckResult;
+              res.status(201).send(resultToSend);
+            });
+        })
+        .catch(error => _u.sendError(res, error));
+    })
+    .catch(err => _u.sendError(res, err));
+};
+
+const addSightingToDB = async (newSighting) => {
   let creationResult;
   // Coordinates are stored as a PostGIS geometry on the DB, adding them is handled separately
   // and species is stored as a speciesId that is a relation to the Species table.
@@ -66,7 +100,7 @@ exports.addSightingToDB = async (newSighting) => {
   return _.omit(creationResult, fieldsToOmitFromResponse);
 };
 
-exports.addSightingToOldDB = async (newSighting) => {
+const addSightingToOldDB = async (newSighting) => {
   try {
     return await duckbeAPI.postSightings(newSighting);
   } catch (err) {
@@ -124,7 +158,7 @@ const getSpeciesIdByName = async (speciesName) => {
   return species;
 };
 
-exports.getSpeciesIdFromBody = async (body) => {
+const getSpeciesIdFromBody = async (body) => {
   /**
    * Gets speciesId based on a string with the species name, or simply the speciesId integer
    * provided by user.

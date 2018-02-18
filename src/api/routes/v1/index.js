@@ -200,39 +200,6 @@ router.get('/sightings', async (req, res) => {
 *      }]
 *
 */
-router.post('/sightings', (req, res) => {
-  // Most of this logic has been externalized to jokbeControllers.js because it is so long.
-  apiController.getSpeciesIdFromBody(req.body)
-    .then((speciesData) => {
-      const sightingToAdd = {
-        species: speciesData.name,
-        speciesId: speciesData.id,
-        description: req.body.description,
-        dateTime: req.body.dateTime,
-        count: req.body.count,
-        latitude: req.body.latitude,
-        longitude: req.body.longitude,
-      };
-
-        // Old DB doesn't support these pieces of data.
-      apiController.addSightingToDB(sightingToAdd)
-        .then((result) => {
-          const fieldsToOmitFromOldDB = ['speciesId', 'location', 'longitude', 'latitude'];
-          apiController.addSightingToOldDB(_.omit(result, fieldsToOmitFromOldDB))
-            .then((duckResult) => {
-              const resultToSend = result;
-              resultToSend.duckbeResult = duckResult;
-              res.status(201).send(resultToSend);
-            })
-            .catch((duckResult) => {
-              const resultToSend = result;
-              resultToSend.duckbeResult = duckResult;
-              res.status(201).send(resultToSend);
-            });
-        })
-        .catch(error => _u.sendError(res, error));
-    })
-    .catch(err => _u.sendError(res, err));
-});
+router.post('/sightings', (req, res) => apiController.postSightingsRoute(req, res));
 
 module.exports = router;
