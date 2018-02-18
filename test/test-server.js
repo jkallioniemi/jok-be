@@ -160,7 +160,7 @@ mocha.describe('API', () => {
         });
     });
 
-    it('should fail to add sighting if provided species does not exist in DB', () => {
+    it('should FAIL to add sighting if provided species does not exist in DB', () => {
       const tSpecies = 'bogus species';
 
       return chai.request(server)
@@ -178,7 +178,7 @@ mocha.describe('API', () => {
         });
     });
 
-    it('should fail to add sighting if provided speciesId does not exist in DB', () => {
+    it('should FAIL to add sighting if provided speciesId does not exist in DB', () => {
       return chai.request(server)
         .post('/v1/sightings')
         .send({
@@ -194,7 +194,7 @@ mocha.describe('API', () => {
         });
     });
 
-    it('should fail to add sighting if provided speciesId is in wrong format', () => {
+    it('should FAIL to add sighting if provided speciesId is in wrong format', () => {
       return chai.request(server)
         .post('/v1/sightings')
         .send({
@@ -210,7 +210,7 @@ mocha.describe('API', () => {
         });
     });
 
-    it('should fail to add sighting if no data about species is provided', () => {
+    it('should FAIL to add sighting if no data about species is provided', () => {
       return chai.request(server)
         .post('/v1/sightings')
         .send({
@@ -224,7 +224,7 @@ mocha.describe('API', () => {
         });
     });
 
-    it('should fail to add sighting if data about count is provided', () => {
+    it('should FAIL to add sighting if data about count is provided', () => {
       return chai.request(server)
         .post('/v1/sightings')
         .send({
@@ -238,7 +238,7 @@ mocha.describe('API', () => {
         });
     });
 
-    it('should fail to add sighting if provided count is less than zero', () => {
+    it('should FAIL to add sighting if provided count is less than zero', () => {
       return chai.request(server)
         .post('/v1/sightings')
         .send({
@@ -253,7 +253,7 @@ mocha.describe('API', () => {
         });
     });
 
-    it('should fail to add sighting if provided count is wrong type', () => {
+    it('should FAIL to add sighting if provided count is wrong type', () => {
       return chai.request(server)
         .post('/v1/sightings')
         .send({
@@ -268,7 +268,7 @@ mocha.describe('API', () => {
         });
     });
 
-    it('should fail to add sighting if provided latitude is wrong type', () => {
+    it('should FAIL to add sighting if provided latitude is wrong type', () => {
       return chai.request(server)
         .post('/v1/sightings')
         .send({
@@ -285,7 +285,7 @@ mocha.describe('API', () => {
         });
     });
 
-    it('should fail to add sighting if provided longitude is wrong type', () => {
+    it('should FAIL to add sighting if provided longitude is wrong type', () => {
       return chai.request(server)
         .post('/v1/sightings')
         .send({
@@ -302,7 +302,7 @@ mocha.describe('API', () => {
         });
     });
 
-    it('should fail to add sighting if provided latitude is illegal value', () => {
+    it('should FAIL to add sighting if provided latitude is illegal value', () => {
       return chai.request(server)
         .post('/v1/sightings')
         .send({
@@ -319,7 +319,7 @@ mocha.describe('API', () => {
         });
     });
 
-    it('should fail to add sighting if provided longitude is illegal value', () => {
+    it('should FAIL to add sighting if provided longitude is illegal value', () => {
       return chai.request(server)
         .post('/v1/sightings')
         .send({
@@ -333,6 +333,34 @@ mocha.describe('API', () => {
           res.should.be.a('object');
           res.body.message.should.include('ValidationError');
           res.body.data.should.include('ISO 6709:2008');
+        });
+    });
+  });
+
+  describe('GET /sightings', () => {
+    mocha.before((done) => {
+      knex('Sighting').del()
+        .then(() => knex('Sighting').insert([{
+          speciesId: 3,
+          description: 'All your ducks are belong to us',
+          dateTime: '2016-10-01T01:01:00Z',
+          count: 1,
+        },
+        {
+          speciesId: 5,
+          description: 'This is awesome',
+          dateTime: '2016-12-13T12:05:00Z',
+          count: 5,
+        }]))
+        .then(done());
+    });
+
+    it('should list ALL sightings on /sightings GET', () => {
+      return chai.request(server)
+        .get('/v1/sightings')
+        .then((res) => {
+          res.should.have.status(200);
+          res.body.should.be.a('array');
         });
     });
   });
