@@ -90,61 +90,7 @@ router.get('/species', async (req, res) => {
 *       ... ]
 *
 */
-router.get('/sightings', async (req, res) => {
-  try {
-    let sightingsResult;
-    if (req.query.longitude && req.query.latitude && req.query.distance) {
-      const coordinates = apiController.getCoordinatesFromBody(req.query);
-      const dist = parseFloat(req.query.distance);
-      if (!Number.isFinite(dist) || dist <= 0) {
-        _u.sendError(res, new APIError({
-          errorMessage: 'ValidationError: provided distance is incorrectly formatted!',
-          errorData: 'Distance should be a number and greater than 0.',
-          statusCode: 400,
-        }));
-        return;
-      }
-      const distInMeters = dist * 1000;
-
-      const geoObject = {
-        type: 'Point',
-        coordinates: [coordinates.longitude, coordinates.latitude],
-        crs: { type: 'name', properties: { name: 'EPSG:4326' } },
-      };
-
-      const geoJSON = JSON.stringify(geoObject);
-
-      sightingsResult = await Sighting
-        .query()
-        .select('*', raw('ST_AsGeoJSON(location) AS gjson'))
-        .where(raw('ST_DWithin(location, ST_GeomFromGeoJSON(?), ?)', geoJSON, distInMeters))
-        .eager('species');
-    } else {
-      sightingsResult = await Sighting
-        .query()
-        .select('*', raw('ST_AsGeoJSON(location) AS gjson'))
-        .eager('species');
-    }
-
-    // Location is stored as a PostGIS geometry in the DB, so omit it from the response and add
-    // the lat and lon coordinates from the JSON that ST_AsGeoJSON produces.
-    const sightingsResponse = _.map(sightingsResult, (sighting) => {
-      const newSighting = _.omit(sighting, ['speciesId', 'location', 'gjson']);
-
-      const geoJSON = JSON.parse(_.get(sighting, 'gjson'));
-
-      newSighting.longitude = _.get(geoJSON, 'coordinates[0]', null);
-      newSighting.latitude = _.get(geoJSON, 'coordinates[1]', null);
-
-      newSighting.species = sighting.species.name;
-      return newSighting;
-    });
-
-    res.send(sightingsResponse);
-  } catch (err) {
-    _u.sendError(res, err);
-  }
-});
+router.get('/sightings', (req, res) => apiController.getSightingsRoute(req, res));
 
 /**
 * @api {post} /v1/sightings Create a sighting
