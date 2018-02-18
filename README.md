@@ -2,7 +2,7 @@
 
 ## Requirements
 
- - [Node v7.6+](https://nodejs.org/en/download/current/)
+ - Boilerplate says [Node v7.6+](https://nodejs.org/en/download/current/), I used v8.9.4, YMMV
  - [Yarn](https://yarnpkg.com/en/docs/install)
 
 ## Disclaimer
@@ -30,15 +30,22 @@ Set environment variables:
 cp .env.example .env
 ```
 
-Create the database:
+Set up both server DB and test DB:
 ```bash
-yarn create-db
+yarn setup
 ```
 create-db uses the 'postgres' user by default. 
 If you wish to specify another superuser for creating the database, you can edit the `package.json` file.
 The same goes for changing the name of the created database.
 Keep in mind that if you change the name of the DB, you should also change the name of the database in
 your .env file.
+
+If you only want to create the DB for the app, you can do so with `yarn create-db`.
+You can also recreate the database at any time with `yarn recreate-db`.
+It is also possible to delete the databases created by the setup command with `yarn cleanup`.
+
+If you only want to create the DB for the tests, this can be achieved with `yarn test-setup`.
+Likewise, you can get rid of the test DB with `yarn test-cleanup`.
 
 ## Running Locally
 
@@ -64,15 +71,6 @@ yarn lint:watch
 ```bash
 # run all tests with Mocha
 yarn test
-
-# run unit tests
-yarn test:unit
-
-# run integration tests
-yarn test:integration
-
-# run all tests and watch for changes
-yarn test:watch
 ```
 
 ## Documentation
