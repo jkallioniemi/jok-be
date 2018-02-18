@@ -1,4 +1,4 @@
-# jok-be
+# jok-be [![Build Status](https://travis-ci.org/jkallioniemi/jok-be.svg?branch=master)](https://travis-ci.org/jkallioniemi/jok-be)
 
 ## Requirements
 
