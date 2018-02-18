@@ -6,6 +6,15 @@ const _u = require('../utils/miscUtils');
 const _ = require('lodash');
 const { raw } = require('objection');
 
+exports.getSpeciesRoute = async (req, res) => {
+  try {
+    const speciesResult = await Species.query();
+    res.send(speciesResult);
+  } catch (error) {
+    _u.sendError(res, error);
+  }
+};
+
 exports.getSightingsRoute = async (req, res) => {
   try {
     let sightingsResult;

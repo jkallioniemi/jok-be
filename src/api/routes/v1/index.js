@@ -39,10 +39,7 @@ router.get('/status', (req, res) => res.send('OK'));
 *     }]
 *
 */
-router.get('/species', async (req, res) => {
-  const speciesResult = await Species.query();
-  res.send(speciesResult);
-});
+router.get('/species', (req, res) => apiController.getSpeciesRoute(req, res));
 
 /**
 * @api {get} /v1/sightings Retrieve all sightings
