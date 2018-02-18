@@ -16,6 +16,7 @@ const Knex = require('knex');
 const knexConfig = require('../knexfile');
 const server = require('../src/server');
 const mocha = require('mocha');
+const _ = require('lodash');
 
 const should = chai.should();
 const knex = Knex(knexConfig.test);
@@ -326,15 +327,31 @@ mocha.describe('API', () => {
     mocha.before(() => knex('Sighting').del()
       .then(() => knex('Sighting').insert([{
         speciesId: 3,
-        description: 'All your ducks are belong to us',
+        description: 'Helsinki duck',
         dateTime: '2016-10-01T01:01:00Z',
         count: 1,
+        location: knex.raw("ST_GeomFromText('POINT(24.9412669 60.1695857)', 4326)"),
+      },
+      {
+        speciesId: 4,
+        description: 'Hervanta duck',
+        dateTime: '2017-10-01T01:01:00Z',
+        count: 1,
+        location: knex.raw("ST_GeomFromText('POINT(23.8541406 61.4482511)', 4326)"),
+      },
+      {
+        speciesId: 1,
+        description: 'Hämeenlinna duck',
+        dateTime: '2012-10-01T01:01:00Z',
+        count: 1,
+        location: knex.raw("ST_GeomFromText('POINT(24.4611430 60.9976933)', 4326)"),
       },
       {
         speciesId: 5,
-        description: 'This is awesome',
+        description: 'Tampere duck',
         dateTime: '2016-12-13T12:05:00Z',
-        count: 5,
+        count: 1,
+        location: knex.raw("ST_GeomFromText('POINT(23.7638677 61.4976713)', 4326)"),
       }])));
 
     mocha.after(() => knex('Sighting').del());
@@ -345,6 +362,72 @@ mocha.describe('API', () => {
         .then((res) => {
           res.should.have.status(200);
           res.body.should.be.a('array');
+          const descriptions = _.map(res.body, (sighting) => _.get(sighting, 'description'));
+          descriptions.should.include('Tampere duck');
+        });
+    });
+
+    it('should list ALL sightings WITHIN provided distance of provided coordinates', () => {
+      const tLongitude = 23.763776;
+      const tLatitude = 61.497405;
+      const tDistance = 100;
+
+      return chai.request(server)
+        .get('/v1/sightings')
+        .query({ longitude: tLongitude, latitude: tLatitude, distance: tDistance })
+        .then((res) => {
+          res.should.have.status(200);
+          res.body.should.be.a('array');
+          const descriptions = _.map(res.body, sighting => _.get(sighting, 'description'));
+          descriptions.should.include('Tampere duck');
+          descriptions.should.include('Hervanta duck');
+          descriptions.should.include('Hämeenlinna duck');
+          descriptions.should.not.include('Helsinki duck');
+        });
+    });
+
+    it('should fail to list any sightings when latitude is entered incorrectly', () => {
+      const tLongitude = 23.763776;
+      const tLatitude = 'thisShouldNotWork';
+      const tDistance = 100;
+
+      return chai.request(server)
+        .get('/v1/sightings')
+        .query({ longitude: tLongitude, latitude: tLatitude, distance: tDistance })
+        .then((res) => {
+          res.should.have.status(400);
+          res.body.message.should.include('ValidationError');
+          res.body.data.should.include('isNaN');
+        });
+    });
+
+    it('should fail to list any sightings when longitude is an illegal value', () => {
+      const tLongitude = -233.763776;
+      const tLatitude = 12.2562;
+      const tDistance = 100;
+
+      return chai.request(server)
+        .get('/v1/sightings')
+        .query({ longitude: tLongitude, latitude: tLatitude, distance: tDistance })
+        .then((res) => {
+          res.should.have.status(400);
+          res.body.message.should.include('ValidationError');
+          res.body.data.should.include('ISO 6709:2008');
+        });
+    });
+
+    it('should fail to list any sightings when distance is an illegal value', () => {
+      const tLongitude = -23.763776;
+      const tLatitude = 12.2562;
+      const tDistance = -50;
+
+      return chai.request(server)
+        .get('/v1/sightings')
+        .query({ longitude: tLongitude, latitude: tLatitude, distance: tDistance })
+        .then((res) => {
+          res.should.have.status(400);
+          res.body.message.should.include('ValidationError');
+          res.body.data.should.include('should be a number and greater than 0');
         });
     });
   });

@@ -27,7 +27,7 @@ exports.addSightingToDB = async (newSighting) => {
 
   // FIXME: The proper way to do this would be to combine these two queries into one.
   if (newSighting.latitude && newSighting.longitude) {
-    const coordinates = getCoordinatesFromBody(newSighting);
+    const coordinates = exports.getCoordinatesFromBody(newSighting);
     let locationPatchResult;
     try {
       const geoObject = {
@@ -78,7 +78,7 @@ exports.addSightingToOldDB = async (newSighting) => {
   }
 };
 
-const getCoordinatesFromBody = (sighting) => {
+exports.getCoordinatesFromBody = (sighting) => {
   /**
    * Validates coordinates and returns an object with a 'latitude' key and a 'longitude' key.
    * @param {object} - object that has a 'latitude' key and a 'longitude' key
