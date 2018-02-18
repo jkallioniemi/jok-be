@@ -25,4 +25,22 @@ module.exports = {
     },
   },
 
+  test: {
+    client: 'postgresql',
+    connection: {
+      port: process.env.JOK_DATABASE_PORT,
+      host: process.env.JOK_DATABASE_HOST,
+      database: 'jok-test-db',
+      user: process.env.JOK_DATABASE_USER,
+      password: process.env.JOK_DATABASE_PASSWORD,
+    },
+    migrations: {
+      directory: './db/migrations',
+      tableName: 'knex_migrations',
+    },
+    seeds: {
+      directory: './db/seeds/test',
+    },
+  },
+
 };

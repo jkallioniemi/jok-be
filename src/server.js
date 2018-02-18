@@ -7,14 +7,19 @@ const knexConfig = require('../knexfile');
 const app = require('./config/express');
 
 // initialize knex and objection
-const knex = Knex(knexConfig.development);
+const knex = Knex(knexConfig[env]);
 Model.knex(knex);
 
 // listen to requests
-app.listen(port, () => console.info(`server started on port ${port} (${env})`));
+const server = app.listen(port, () => console.info(`server started on port ${port} (${env})`));
+
+const stop = () => {
+  server.close();
+};
 
 /**
 * Exports express
 * @public
 */
 module.exports = app;
+module.exports.stop = stop;

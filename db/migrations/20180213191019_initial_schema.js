@@ -18,5 +18,5 @@ exports.up = knex => knex.schema
         CREATE EXTENSION IF NOT EXISTS postgis SCHEMA extensions;`);
 
 exports.down = knex => knex.schema
-  .dropTableIfExists('People')
+  .dropTableIfExists('Sighting')
   .dropTableIfExists('Species');
