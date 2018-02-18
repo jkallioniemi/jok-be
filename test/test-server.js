@@ -6,13 +6,6 @@ require('dotenv-safe').load({
   sample: path.join(__dirname, '../.env.example'),
 });
 
-const dbconfig = {
-  user: process.env.JOK_DATABASE_USER,
-  password: process.env.JOK_DATABASE_PASSWORD,
-  port: 5432,
-  host: 'localhost',
-};
-
 process.env.NODE_ENV = 'test';
 process.env.JOK_DATABASE_NAME = 'jok-test-db';
 process.env.PORT = 8242;
@@ -31,18 +24,10 @@ chai.use(chaiHttp);
 
 mocha.describe('API', () => {
 
-  mocha.before((done) => {
-    knex.migrate.latest()
-      .then(() => knex.seed.run())
-      .then(() => done());
-  });
+  mocha.before(() => knex.migrate.latest()
+    .then(() => knex.seed.run()));
 
-  mocha.after((done) => {
-    knex.migrate.rollback()
-      .then(() => {
-        done();
-      });
-  });
+  mocha.after(() => knex.migrate.rollback());
 
   describe('GET /species', () => {
     it('should list ALL species on /species GET', () => {
@@ -338,22 +323,21 @@ mocha.describe('API', () => {
   });
 
   describe('GET /sightings', () => {
-    mocha.before((done) => {
-      knex('Sighting').del()
-        .then(() => knex('Sighting').insert([{
-          speciesId: 3,
-          description: 'All your ducks are belong to us',
-          dateTime: '2016-10-01T01:01:00Z',
-          count: 1,
-        },
-        {
-          speciesId: 5,
-          description: 'This is awesome',
-          dateTime: '2016-12-13T12:05:00Z',
-          count: 5,
-        }]))
-        .then(done());
-    });
+    mocha.before(() => knex('Sighting').del()
+      .then(() => knex('Sighting').insert([{
+        speciesId: 3,
+        description: 'All your ducks are belong to us',
+        dateTime: '2016-10-01T01:01:00Z',
+        count: 1,
+      },
+      {
+        speciesId: 5,
+        description: 'This is awesome',
+        dateTime: '2016-12-13T12:05:00Z',
+        count: 5,
+      }])));
+
+    mocha.after(() => knex('Sighting').del());
 
     it('should list ALL sightings on /sightings GET', () => {
       return chai.request(server)
