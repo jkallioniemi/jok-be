@@ -11,7 +11,7 @@
   },
   "scripts": {
     "create-db": "createdb -U postgres jok-be && yarn migrate && yarn seed",
-    "recreate-db": "dropdb -U postgres jok-be && SUPERUSER=${SUPERUSER:-postgres} yarn create-db",
+    "recreate-db": "dropdb -U postgres jok-be && yarn create-db",
     "setup": "yarn create-db && yarn test-setup",
     "cleanup": "dropdb -U postgres jok-be && yarn test-cleanup",
     "migrate": "knex migrate:latest",
@@ -23,14 +23,11 @@
     "test-setup": "createdb -U postgres jok-test-db",
     "test-cleanup": "dropdb -U postgres jok-test-db --if-exists",
     "test": "mocha --exit --recursive test",
-    "test:unit": "cross-env NODE_ENV=test mocha src/api/tests/unit",
-    "test:integration": "cross-env NODE_ENV=test mocha --timeout 20000 src/api/tests/integration",
-    "test:watch": "cross-env NODE_ENV=test mocha --watch src/api/tests/unit",
     "docs": "apidoc -i src -o docs"
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:danielfsousa/express-rest-es2017-boilerplate.git"
+    "url": "git@github.com:jkallioniemi/jok-be.git"
   },
   "keywords": [
     "express",
