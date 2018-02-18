@@ -59,4 +59,281 @@ mocha.describe('API', () => {
     });
   });
 
+  describe('POST /sightings', () => {
+    it('should add a SINGLE sighting when all fields are provided', () => {
+      const tSpecies = 'mallard';
+      const tCount = 2;
+      const tDesc = 'scary duck';
+      const tDateTime = '2018-02-18T08:25:41.570Z';
+      const tLatitude = 42.1337;
+      const tLongitude = -3.141592;
+
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          species: tSpecies,
+          count: tCount,
+          description: tDesc,
+          dateTime: tDateTime,
+          latitude: tLatitude,
+          longitude: tLongitude,
+        })
+        .then((res) => {
+          res.should.have.status(201);
+          res.should.be.json;
+          res.body.should.be.a('object');
+          res.body.should.have.property('id');
+          res.body.should.have.property('duckbeResult');
+          res.body.species.should.equal(tSpecies);
+          res.body.count.should.equal(tCount);
+          res.body.description.should.equal(tDesc);
+          res.body.dateTime.should.equal(tDateTime);
+          res.body.latitude.should.equal(tLatitude);
+          res.body.longitude.should.equal(tLongitude);
+        })
+        .catch((err) => {
+          throw err;
+        });
+    });
+
+    it('should add a SINGLE sighting with the minimum data provided', () => {
+      const tSpecies = 'redhead';
+      const tCount = 10;
+
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          species: tSpecies,
+          count: tCount,
+        })
+        .then((res) => {
+          res.should.have.status(201);
+          res.should.be.json;
+          res.should.be.a('object');
+          res.body.should.have.property('id');
+          res.body.should.have.property('duckbeResult');
+          res.body.species.should.equal(tSpecies);
+          res.body.count.should.equal(tCount);
+          const dt = res.body.dateTime;
+          should.equal(dt, new Date(dt).toISOString());
+          should.equal(res.body.description, null);
+          should.equal(res.body.latitude, null);
+          should.equal(res.body.longitude, null);
+        });
+    });
+
+    it('should add a SINGLE sighting and replace user provided id with server\'s own id', () => {
+      const tId = 31545;
+
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          id: tId,
+          species: 'mallard',
+          count: 1,
+        })
+        .then((res) => {
+          res.should.have.status(201);
+          should.not.equal(res.body.id, tId);
+        });
+    });
+
+    it('should add a SINGLE sighting with speciesId provided instead of species', () => {
+      const expectedSpecies = 'gadwall';
+      const tSpeciesId = 3;
+      const tCount = 10;
+
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          speciesId: tSpeciesId,
+          count: tCount,
+        })
+        .then((res) => {
+          res.should.have.status(201);
+          res.should.be.json;
+          res.should.be.a('object');
+          res.body.should.have.property('id');
+          res.body.should.have.property('duckbeResult');
+          res.body.species.should.equal(expectedSpecies);
+          res.body.count.should.equal(tCount);
+        });
+    });
+
+    it('should fail to add sighting if provided species does not exist in DB', () => {
+      const tSpecies = 'bogus species';
+
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          species: tSpecies,
+          count: 10,
+        })
+        .then((res) => {
+          res.should.have.status(404);
+          res.should.be.a('object');
+          res.body.message.should.include('ValidationError');
+          res.body.message.should.include(tSpecies);
+          res.body.data.should.include('species.length');
+        });
+    });
+
+    it('should fail to add sighting if provided speciesId does not exist in DB', () => {
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          speciesId: 316,
+          count: 10,
+        })
+        .then((res) => {
+          res.should.have.status(404);
+          res.should.be.a('object');
+          res.body.message.should.include('TypeError');
+          res.body.message.should.include('speciesId not found');
+          res.body.should.have.property('data');
+        });
+    });
+
+    it('should fail to add sighting if provided speciesId is in wrong format', () => {
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          speciesId: 'dyjhksh',
+          count: 5,
+        })
+        .then((res) => {
+          res.should.have.status(400);
+          res.should.be.a('object');
+          res.body.message.should.include('ValidationError');
+          res.body.message.should.include('wrong format');
+          res.body.data.should.include('speciesId is NaN');
+        });
+    });
+
+    it('should fail to add sighting if no data about species is provided', () => {
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          count: 10,
+        })
+        .then((res) => {
+          res.should.have.status(400);
+          res.should.be.a('object');
+          res.body.message.should.include('ValidationError');
+          res.body.data.should.include('species');
+        });
+    });
+
+    it('should fail to add sighting if data about count is provided', () => {
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          species: 'mallard',
+        })
+        .then((res) => {
+          res.should.have.status(400);
+          res.should.be.a('object');
+          res.body.message.should.include('ValidationError');
+          res.body.data.count[0].message.should.include('required');
+        });
+    });
+
+    it('should fail to add sighting if provided count is less than zero', () => {
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          species: 'mallard',
+          count: 0,
+        })
+        .then((res) => {
+          res.should.have.status(400);
+          res.should.be.a('object');
+          res.body.message.should.include('ValidationError');
+          res.body.data.count[0].message.should.include('>= 1');
+        });
+    });
+
+    it('should fail to add sighting if provided count is wrong type', () => {
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          species: 'mallard',
+          count: 'tej',
+        })
+        .then((res) => {
+          res.should.have.status(400);
+          res.should.be.a('object');
+          res.body.message.should.include('ValidationError');
+          res.body.data.count[0].message.should.include('integer');
+        });
+    });
+
+    it('should fail to add sighting if provided latitude is wrong type', () => {
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          species: 'mallard',
+          count: 1,
+          latitude: 'cat',
+          longitude: 22.5315,
+        })
+        .then((res) => {
+          res.should.have.status(400);
+          res.should.be.a('object');
+          res.body.message.should.include('ValidationError');
+          res.body.message.should.include('not numbers');
+        });
+    });
+
+    it('should fail to add sighting if provided longitude is wrong type', () => {
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          species: 'mallard',
+          count: 1,
+          latitude: 63.315,
+          longitude: "cat",
+        })
+        .then((res) => {
+          res.should.have.status(400);
+          res.should.be.a('object');
+          res.body.message.should.include('ValidationError');
+          res.body.message.should.include('not numbers');
+        });
+    });
+
+    it('should fail to add sighting if provided latitude is illegal value', () => {
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          species: 'mallard',
+          count: 1,
+          latitude: 633.315,
+          longitude: 21.351,
+        })
+        .then((res) => {
+          res.should.have.status(400);
+          res.should.be.a('object');
+          res.body.message.should.include('ValidationError');
+          res.body.data.should.include('ISO 6709:2008');
+        });
+    });
+
+    it('should fail to add sighting if provided longitude is illegal value', () => {
+      return chai.request(server)
+        .post('/v1/sightings')
+        .send({
+          species: 'mallard',
+          count: 1,
+          latitude: 63.315,
+          longitude: 180.000,
+        })
+        .then((res) => {
+          res.should.have.status(400);
+          res.should.be.a('object');
+          res.body.message.should.include('ValidationError');
+          res.body.data.should.include('ISO 6709:2008');
+        });
+    });
+  });
 });
