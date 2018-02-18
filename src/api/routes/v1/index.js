@@ -1,11 +1,5 @@
-const Sighting = require('../../models/Sighting');
-const Species = require('../../models/Species');
 const express = require('express');
-const _ = require('lodash');
 const apiController = require('../../controllers/jokbeControllers');
-const _u = require('../../utils/miscUtils');
-const { raw } = require('objection');
-const APIError = require('../../utils/APIError');
 
 const router = express.Router();
 
@@ -39,10 +33,7 @@ router.get('/status', (req, res) => res.send('OK'));
 *     }]
 *
 */
-router.get('/species', async (req, res) => {
-  const speciesResult = await Species.query();
-  res.send(speciesResult);
-});
+router.get('/species', (req, res) => apiController.getSpeciesRoute(req, res));
 
 /**
 * @api {get} /v1/sightings Retrieve all sightings
@@ -90,61 +81,7 @@ router.get('/species', async (req, res) => {
 *       ... ]
 *
 */
-router.get('/sightings', async (req, res) => {
-  try {
-    let sightingsResult;
-    if (req.query.longitude && req.query.latitude && req.query.distance) {
-      const coordinates = apiController.getCoordinatesFromBody(req.query);
-      const dist = parseFloat(req.query.distance);
-      if (!Number.isFinite(dist) || dist <= 0) {
-        _u.sendError(res, new APIError({
-          errorMessage: 'ValidationError: provided distance is incorrectly formatted!',
-          errorData: 'Distance should be a number and greater than 0.',
-          statusCode: 400,
-        }));
-        return;
-      }
-      const distInMeters = dist * 1000;
-
-      const geoObject = {
-        type: 'Point',
-        coordinates: [coordinates.longitude, coordinates.latitude],
-        crs: { type: 'name', properties: { name: 'EPSG:4326' } },
-      };
-
-      const geoJSON = JSON.stringify(geoObject);
-
-      sightingsResult = await Sighting
-        .query()
-        .select('*', raw('ST_AsGeoJSON(location) AS gjson'))
-        .where(raw('ST_DWithin(location, ST_GeomFromGeoJSON(?), ?)', geoJSON, distInMeters))
-        .eager('species');
-    } else {
-      sightingsResult = await Sighting
-        .query()
-        .select('*', raw('ST_AsGeoJSON(location) AS gjson'))
-        .eager('species');
-    }
-
-    // Location is stored as a PostGIS geometry in the DB, so omit it from the response and add
-    // the lat and lon coordinates from the JSON that ST_AsGeoJSON produces.
-    const sightingsResponse = _.map(sightingsResult, (sighting) => {
-      const newSighting = _.omit(sighting, ['speciesId', 'location', 'gjson']);
-
-      const geoJSON = JSON.parse(_.get(sighting, 'gjson'));
-
-      newSighting.longitude = _.get(geoJSON, 'coordinates[0]', null);
-      newSighting.latitude = _.get(geoJSON, 'coordinates[1]', null);
-
-      newSighting.species = sighting.species.name;
-      return newSighting;
-    });
-
-    res.send(sightingsResponse);
-  } catch (err) {
-    _u.sendError(res, err);
-  }
-});
+router.get('/sightings', (req, res) => apiController.getSightingsRoute(req, res));
 
 /**
 * @api {post} /v1/sightings Create a sighting
@@ -200,39 +137,6 @@ router.get('/sightings', async (req, res) => {
 *      }]
 *
 */
-router.post('/sightings', (req, res) => {
-  // Most of this logic has been externalized to jokbeControllers.js because it is so long.
-  apiController.getSpeciesIdFromBody(req.body)
-    .then((speciesData) => {
-      const sightingToAdd = {
-        species: speciesData.name,
-        speciesId: speciesData.id,
-        description: req.body.description,
-        dateTime: req.body.dateTime,
-        count: req.body.count,
-        latitude: req.body.latitude,
-        longitude: req.body.longitude,
-      };
-
-        // Old DB doesn't support these pieces of data.
-      apiController.addSightingToDB(sightingToAdd)
-        .then((result) => {
-          const fieldsToOmitFromOldDB = ['speciesId', 'location', 'longitude', 'latitude'];
-          apiController.addSightingToOldDB(_.omit(result, fieldsToOmitFromOldDB))
-            .then((duckResult) => {
-              const resultToSend = result;
-              resultToSend.duckbeResult = duckResult;
-              res.status(201).send(resultToSend);
-            })
-            .catch((duckResult) => {
-              const resultToSend = result;
-              resultToSend.duckbeResult = duckResult;
-              res.status(201).send(resultToSend);
-            });
-        })
-        .catch(error => _u.sendError(res, error));
-    })
-    .catch(err => _u.sendError(res, err));
-});
+router.post('/sightings', (req, res) => apiController.postSightingsRoute(req, res));
 
 module.exports = router;
