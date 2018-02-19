@@ -364,6 +364,9 @@ mocha.describe('API', () => {
           res.body.should.be.a('array');
           const descriptions = _.map(res.body, (sighting) => _.get(sighting, 'description'));
           descriptions.should.include('Tampere duck');
+          descriptions.should.include('Hervanta duck');
+          descriptions.should.include('Hämeenlinna duck');
+          descriptions.should.include('Helsinki duck');
         });
     });
 
